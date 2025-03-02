@@ -3,7 +3,43 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.13.35825.156 d17.13
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMSRateLimiter.Domain", "SMSRateLimiter.Domain\SMSRateLimiter.Domain.csproj", "{5DE2C6E6-0E29-4E5C-92A7-AD2D575BEDE6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMSRateLimiter.Application", "SMSRateLimiter.Application\SMSRateLimiter.Application.csproj", "{0A2FB012-744C-4B30-ADAB-159FEA9572EF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMSRateLimiter.Infrastructure", "SMSRateLimiter.Infrastructure\SMSRateLimiter.Infrastructure.csproj", "{A875C113-52E0-47C8-AD7D-428CBD3383D6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMSRateLimiter.Api", "SMSRateLimiter.Api\SMSRateLimiter.Api.csproj", "{CF379CD0-5B64-4A01-B71B-E4208C48543D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMSRateLimiter.Startup", "SMSRateLimiter.Startup\SMSRateLimiter.Startup.csproj", "{8DF59D1F-F4C6-4A2E-8F34-56A73FE30D5C}"
+EndProject
 Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5DE2C6E6-0E29-4E5C-92A7-AD2D575BEDE6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5DE2C6E6-0E29-4E5C-92A7-AD2D575BEDE6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5DE2C6E6-0E29-4E5C-92A7-AD2D575BEDE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5DE2C6E6-0E29-4E5C-92A7-AD2D575BEDE6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A2FB012-744C-4B30-ADAB-159FEA9572EF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A2FB012-744C-4B30-ADAB-159FEA9572EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A2FB012-744C-4B30-ADAB-159FEA9572EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A2FB012-744C-4B30-ADAB-159FEA9572EF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A875C113-52E0-47C8-AD7D-428CBD3383D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A875C113-52E0-47C8-AD7D-428CBD3383D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A875C113-52E0-47C8-AD7D-428CBD3383D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A875C113-52E0-47C8-AD7D-428CBD3383D6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CF379CD0-5B64-4A01-B71B-E4208C48543D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF379CD0-5B64-4A01-B71B-E4208C48543D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF379CD0-5B64-4A01-B71B-E4208C48543D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF379CD0-5B64-4A01-B71B-E4208C48543D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8DF59D1F-F4C6-4A2E-8F34-56A73FE30D5C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DF59D1F-F4C6-4A2E-8F34-56A73FE30D5C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8DF59D1F-F4C6-4A2E-8F34-56A73FE30D5C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8DF59D1F-F4C6-4A2E-8F34-56A73FE30D5C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
