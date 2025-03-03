@@ -39,7 +39,7 @@ namespace SMSRateLimiter.Application.Tests.ValidatorTests
         [Test]
         public void Should_Not_Have_Error_For_Valid_Model()
         {
-            var model = new SmsRequestDto { PhoneNumber = "+1234567890"};
+            var model = new SmsRequestDto { PhoneNumber = "+1234567890", AccountId = 1};
             var result = _validator.TestValidate(model);
             result.ShouldNotHaveAnyValidationErrors();
         }

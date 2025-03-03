@@ -12,19 +12,19 @@ namespace SMSRateLimiter.Application.Implementations.Services
     {
         private readonly ISmsRateLimiter _smsRateLimiter = smsRateLimiter;
 
-        public async Task<bool> CanSendMessage(string phoneNumber)
+        public async Task<bool> CanSendMessageAsync(int accountId, string phoneNumber, DateTime timestamp)
         {
-            return await _smsRateLimiter.CanSendMessage(phoneNumber);
+            return await _smsRateLimiter.CanSendMessageAsync(accountId, phoneNumber, timestamp);
         }
 
-        public async Task<int> GetGlobalMessageCount()
+        public async Task<int> GetGlobalMessageCountAsync(int accountId, DateTime timestamp)
         {
-            return await _smsRateLimiter.GetGlobalMessageCount();
+            return await _smsRateLimiter.GetGlobalMessageCountAsync(accountId, timestamp);
         }
 
-        public async Task<int> GetMessageCountForNumber(string phoneNumber)
+        public async Task<int> GetMessageCountForNumberAsync(int accountId, string phoneNumber, DateTime timestamp)
         {
-            return await _smsRateLimiter.GetMessageCountForNumber(phoneNumber);
+            return await _smsRateLimiter.GetMessageCountForNumberAsync(accountId, phoneNumber, timestamp);
         }
     }
 }

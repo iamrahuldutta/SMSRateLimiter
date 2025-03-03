@@ -14,50 +14,53 @@ namespace SMSRateLimiter.Application.Tests
             // Arrange
             var phoneNumber = "+1234567890";
             var mockDomainService = new Mock<ISmsRateLimiter>();
-            mockDomainService.Setup(x => x.CanSendMessage(phoneNumber)).ReturnsAsync(true);
+            var utcTimeNow = DateTime.UtcNow;
+            mockDomainService.Setup(x => x.CanSendMessageAsync(1, phoneNumber, utcTimeNow)).ReturnsAsync(true);
             ISmsRateLimiterAppService appService = new SmsRateLimiterAppService(mockDomainService.Object);
 
             // Act
-            var result = await appService.CanSendMessage(phoneNumber);
+            var result = await appService.CanSendMessageAsync(1, phoneNumber, utcTimeNow);
 
             // Assert
             Assert.True(result);
-            mockDomainService.Verify(x => x.CanSendMessage(phoneNumber), Times.Once);
+            mockDomainService.Verify(x => x.CanSendMessageAsync(1, phoneNumber, utcTimeNow), Times.Once);
         }
 
         [Test]
         public async Task GetGlobalMessageCount_DelegatesToDomainService()
         {
             // Arrange
+            var utcTimeNow = DateTime.UtcNow;
             var expectedCount = 5;
             var mockDomainService = new Mock<ISmsRateLimiter>();
-            mockDomainService.Setup(x => x.GetGlobalMessageCount()).ReturnsAsync(expectedCount);
+            mockDomainService.Setup(x => x.GetGlobalMessageCountAsync(1, utcTimeNow)).ReturnsAsync(expectedCount);
             ISmsRateLimiterAppService appService = new SmsRateLimiterAppService(mockDomainService.Object);
 
             // Act
-            var result = await appService.GetGlobalMessageCount();
+            var result = await appService.GetGlobalMessageCountAsync(1, utcTimeNow);
 
             // Assert
             Assert.That(result, Is.EqualTo(expectedCount));
-            mockDomainService.Verify(x => x.GetGlobalMessageCount(), Times.Once);
+            mockDomainService.Verify(x => x.GetGlobalMessageCountAsync(1, utcTimeNow), Times.Once);
         }
 
         [Test]
         public async Task GetMessageCountForNumber_DelegatesToDomainService()
         {
             // Arrange
+            var utcTimeNow = DateTime.UtcNow;
             var phoneNumber = "+1234567890";
             var expectedCount = 3;
             var mockDomainService = new Mock<ISmsRateLimiter>();
-            mockDomainService.Setup(x => x.GetMessageCountForNumber(phoneNumber)).ReturnsAsync(expectedCount);
+            mockDomainService.Setup(x => x.GetMessageCountForNumberAsync(1, phoneNumber, utcTimeNow)).ReturnsAsync(expectedCount);
             ISmsRateLimiterAppService appService = new SmsRateLimiterAppService(mockDomainService.Object);
 
             // Act
-            var result = await appService.GetMessageCountForNumber(phoneNumber);
+            var result = await appService.GetMessageCountForNumberAsync(1, phoneNumber, utcTimeNow);
 
             // Assert
             Assert.That(result, Is.EqualTo(expectedCount));
-            mockDomainService.Verify(x => x.GetMessageCountForNumber(phoneNumber), Times.Once);
+            mockDomainService.Verify(x => x.GetMessageCountForNumberAsync(1, phoneNumber, utcTimeNow), Times.Once);
         }
     }
 }

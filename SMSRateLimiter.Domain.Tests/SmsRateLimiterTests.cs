@@ -1,4 +1,8 @@
+using Microsoft.Extensions.Options;
+using Moq;
+using SMSRateLimiter.Domain.Contracts.Caching;
 using SMSRateLimiter.Domain.Implementations.Services;
+using SMSRateLimiter.Domain.Models;
 using SMSRateLimiter.Domain.Tests.Mocks;
 
 namespace SMSRateLimiter.Domain.Tests
@@ -7,129 +11,138 @@ namespace SMSRateLimiter.Domain.Tests
     public class SmsRateLimiterTests
     {
 
-        [Test]
-        public async Task CanSendMessage_ReturnsTrue_UnderLimit()
+        private Mock<IRateLimitCache> _rateLimitCacheMock = null!;
+        private SmsRateLimiter _smsRateLimiter = null!;
+        private RateLimitOptions _rateLimitOptions = null!;
+
+        [SetUp]
+        public void Setup()
         {
-            // Arrange
-            var fakeCache = new MockRateLimitCache();
-            // For this test, set a per-number limit of 5 and a global limit of 10.
-            var limiter = new SmsRateLimiter(fakeCache, new MockSystemClock(DateTime.UtcNow), maxPerNumber: 5, maxGlobal: 10);
-            string phoneNumber = "+1234567890";
-
-            // Act: first call should be under the limit.
-            bool result = await limiter.CanSendMessage(phoneNumber);
-
-            // Assert: The message can be sent.
-            Assert.That(result, Is.True);
-        }
-
-        [Test]
-        public async Task CanSendMessage_ReturnsFalse_WhenNumberLimitExceeded()
-        {
-            // Arrange
-            var fakeCache = new MockRateLimitCache();
-            // Use a small per-number limit for testing.
-            var limiter = new SmsRateLimiter(fakeCache, new MockSystemClock(DateTime.UtcNow), maxPerNumber: 3, maxGlobal: 100);
-            string phoneNumber = "+1234567890";
-
-            // Act: Call the method 4 times within the same second.
-            bool result1 = await limiter.CanSendMessage(phoneNumber);
-            bool result2 = await limiter.CanSendMessage(phoneNumber);
-            bool result3 = await limiter.CanSendMessage(phoneNumber);
-            bool result4 = await limiter.CanSendMessage(phoneNumber);
-
-            Assert.Multiple(() =>
+            _rateLimitCacheMock = new Mock<IRateLimitCache>();
+            _rateLimitOptions = new RateLimitOptions
             {
-                // Assert: First three calls are within limit; the fourth exceeds the per-number limit.
-                Assert.That(result1, Is.True);
-                Assert.That(result2, Is.True);
-                Assert.That(result3, Is.True);
-                Assert.That(result4, Is.False);
-            });
+                MaxPerAccountPerSecond = 5,
+                MaxPerNumberPerSecond = 2
+            };
+            _smsRateLimiter = new SmsRateLimiter(_rateLimitCacheMock.Object, Options.Create(_rateLimitOptions));
         }
 
         [Test]
-        public async Task CanSendMessage_ReturnsFalse_WhenGlobalLimitExceeded()
+        public async Task CanSendMessageAsync_ShouldAllow_WhenBelowLimits()
         {
-            // Arrange
-            var fakeCache = new MockRateLimitCache();
-            // Use a small global limit.
-            var limiter = new SmsRateLimiter(fakeCache, new MockSystemClock(DateTime.UtcNow), maxPerNumber: 100, maxGlobal: 3);
-            string phoneNumber1 = "+1234567890";
-            string phoneNumber2 = "+0987654321";
+            var accountId = 1;
+            var phoneNumber = "+1234567890";
+            var timestamp = DateTime.UtcNow;
 
-            // Act: Call across phone numbers to exceed the global limit.
-            bool r1 = await limiter.CanSendMessage(phoneNumber1);
-            bool r2 = await limiter.CanSendMessage(phoneNumber2);
-            bool r3 = await limiter.CanSendMessage(phoneNumber1);
-            bool r4 = await limiter.CanSendMessage(phoneNumber2);
+            _rateLimitCacheMock
+                .Setup(x => x.IncrementAsync(It.Is<string>(k => k.StartsWith("account")), It.IsAny<TimeSpan>()))
+                .ReturnsAsync(3);
 
-            Assert.Multiple(() =>
-            {
-                // Assert: With a global limit of 3, the first three calls are accepted, the fourth is rejected.
-                Assert.That(r1, Is.True);
-                Assert.That(r2, Is.True);
-                Assert.That(r3, Is.True);
-                Assert.That(r4, Is.False);
-            });
+            _rateLimitCacheMock
+                .Setup(x => x.IncrementAsync(It.Is<string>(k => k.StartsWith("number")), It.IsAny<TimeSpan>()))
+                .ReturnsAsync(1);
+
+            var result = await _smsRateLimiter.CanSendMessageAsync(accountId, phoneNumber, timestamp);
+
+            Assert.IsTrue(result);
         }
 
         [Test]
-        public async Task GetGlobalMessageCount_ReturnsCorrectCount()
+        public async Task CanSendMessageAsync_ShouldBlock_WhenAccountLimitExceeded()
         {
-            // Arrange
-            var fakeCache = new MockRateLimitCache();
-            var limiter = new SmsRateLimiter(fakeCache, new MockSystemClock(DateTime.UtcNow), maxPerNumber: 5, maxGlobal: 100);
-            string phoneNumber = "+1234567890";
+            var accountId = 1;
+            var phoneNumber = "+1234567890";
+            var timestamp = DateTime.UtcNow;
 
-            // Act: Call CanSendMessage twice; global count should reflect 2 increments.
-            await limiter.CanSendMessage(phoneNumber);
-            await limiter.CanSendMessage(phoneNumber);
+            _rateLimitCacheMock
+                .Setup(x => x.IncrementAsync(It.Is<string>(k => k.StartsWith("account")), It.IsAny<TimeSpan>()))
+                .ReturnsAsync(6); // Exceeds MaxPerAccountPerSecond (5)
 
-            int globalCount = await limiter.GetGlobalMessageCount();
+            var result = await _smsRateLimiter.CanSendMessageAsync(accountId, phoneNumber, timestamp);
 
-            // Assert
-            Assert.That(globalCount, Is.EqualTo(2));
+            Assert.IsFalse(result);
         }
 
         [Test]
-        public async Task GetMessageCountForNumber_ReturnsCorrectCount()
+        public async Task CanSendMessageAsync_ShouldBlock_WhenNumberLimitExceeded()
         {
-            // Arrange
-            var fakeCache = new MockRateLimitCache();
-            var limiter = new SmsRateLimiter(fakeCache, new MockSystemClock(DateTime.UtcNow), maxPerNumber: 5, maxGlobal: 100);
-            string phoneNumber = "+1234567890";
+            var accountId = 1;
+            var phoneNumber = "+1234567890";
+            var timestamp = DateTime.UtcNow;
 
-            // Act: Call CanSendMessage twice; per-number counter should reflect 2 increments.
-            await limiter.CanSendMessage(phoneNumber);
-            await limiter.CanSendMessage(phoneNumber);
+            _rateLimitCacheMock
+                .Setup(x => x.IncrementAsync(It.Is<string>(k => k.StartsWith("account")), It.IsAny<TimeSpan>()))
+                .ReturnsAsync(4); // Below account limit
 
-            int numberCount = await limiter.GetMessageCountForNumber(phoneNumber);
+            _rateLimitCacheMock
+                .Setup(x => x.IncrementAsync(It.Is<string>(k => k.StartsWith("number")), It.IsAny<TimeSpan>()))
+                .ReturnsAsync(3); // Exceeds MaxPerNumberPerSecond (2)
 
-            // Assert
-            Assert.That(numberCount, Is.EqualTo(2));
+            var result = await _smsRateLimiter.CanSendMessageAsync(accountId, phoneNumber, timestamp);
+
+            Assert.IsFalse(result);
         }
 
         [Test]
-        public async Task CanSendMessage_ResetsAfterExpiration()
+        public async Task GetMessageCountForAccountAsync_ShouldReturnCount_WhenFound()
         {
-            var fakeClock = new MockSystemClock(DateTime.UtcNow);
-            var fakeCache = new MockRateLimitCache();
-            var limiter = new SmsRateLimiter(fakeCache, fakeClock, maxPerNumber: 5, maxGlobal: 100);
-            string phoneNumber = "+1234567890";
+            var accountId = 1;
+            var timestamp = DateTime.UtcNow;
 
-            // Act: Send messages in the first second.
-            await limiter.CanSendMessage(phoneNumber);  // counter becomes 1.
-            Assert.That(await limiter.GetMessageCountForNumber(phoneNumber), Is.EqualTo(1));
+            _rateLimitCacheMock
+                .Setup(x => x.TryGetValueAsync<int>(It.IsAny<string>()))
+                .ReturnsAsync((true, 10));
 
-            // Simulate the passage of time beyond the 1-second expiration.
-            fakeClock.UtcNow = fakeClock.UtcNow.AddSeconds(2);
+            var count = await _smsRateLimiter.GetGlobalMessageCountAsync(accountId, timestamp);
 
-            // Act: In the new time window, the counter should be reset.
-            int newCount = await limiter.GetMessageCountForNumber(phoneNumber);
+            Assert.AreEqual(10, count);
+        }
 
-            // Assert: newCount should be 0 because the previous counter expired.
-            Assert.That(newCount, Is.EqualTo(0));
+        [Test]
+        public async Task GetMessageCountForAccountAsync_ShouldReturnZero_WhenNotFound()
+        {
+            var accountId = 1;
+            var timestamp = DateTime.UtcNow;
+
+            _rateLimitCacheMock
+                .Setup(x => x.TryGetValueAsync<int>(It.IsAny<string>()))
+                .ReturnsAsync((false, 0));
+
+            var count = await _smsRateLimiter.GetGlobalMessageCountAsync(accountId, timestamp);
+
+            Assert.AreEqual(0, count);
+        }
+
+        [Test]
+        public async Task GetMessageCountForNumberAsync_ShouldReturnCount_WhenFound()
+        {
+            var accountId = 1;
+            var phoneNumber = "+1234567890";
+            var timestamp = DateTime.UtcNow;
+
+            _rateLimitCacheMock
+                .Setup(x => x.TryGetValueAsync<int>(It.IsAny<string>()))
+                .ReturnsAsync((true, 5));
+
+            var count = await _smsRateLimiter.GetMessageCountForNumberAsync(accountId, phoneNumber, timestamp);
+
+            Assert.AreEqual(5, count);
+        }
+
+        [Test]
+        public async Task GetMessageCountForNumberAsync_ShouldReturnZero_WhenNotFound()
+        {
+            var accountId = 1;
+            var phoneNumber = "+1234567890";
+            var timestamp = DateTime.UtcNow;
+
+            _rateLimitCacheMock
+                .Setup(x => x.TryGetValueAsync<int>(It.IsAny<string>()))
+                .ReturnsAsync((false, 0));
+
+            var count = await _smsRateLimiter.GetMessageCountForNumberAsync(accountId, phoneNumber, timestamp);
+
+            Assert.AreEqual(0, count);
         }
     }
 }

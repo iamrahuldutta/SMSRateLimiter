@@ -6,9 +6,10 @@ using System.Threading.Tasks;
 
 namespace SMSRateLimiter.Application.DTOs
 {
-    public class SmsRequestDto
+    public class SmsLogDto
     {
         public int AccountId { get; set; }
-        public required string PhoneNumber { get; set; }
+        public string PhoneNumber { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
     }
 }

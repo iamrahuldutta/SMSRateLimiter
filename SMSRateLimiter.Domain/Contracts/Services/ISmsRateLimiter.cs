@@ -12,9 +12,9 @@ namespace SMSRateLimiter.Domain.Contracts.Services
         /// Determines if an SMS message can be sent from the given phone number
         /// without exceeding the per-number and global limits.
         /// </summary>
-        Task<bool> CanSendMessage(string phoneNumber);
+        Task<bool> CanSendMessageAsync(int accountId, string phoneNumber, DateTime timestamp);
 
-        Task<int> GetGlobalMessageCount();
-        Task<int> GetMessageCountForNumber(string phoneNumber);
+        Task<int> GetGlobalMessageCountAsync(int accountId, DateTime timestamp);
+        Task<int> GetMessageCountForNumberAsync(int accountId, string phoneNumber, DateTime timestamp);
     }
 }

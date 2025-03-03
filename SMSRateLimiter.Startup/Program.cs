@@ -14,6 +14,15 @@ using SMSRateLimiter.Application.Validations;
 using StackExchange.Redis;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using SMSRateLimiter.Infrastructure.Persistence.Repository;
+using SMSRateLimiter.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using SMSRateLimiter.Domain.Contracts.Repositories;
+using SMSRateLimiter.Api.BackgoundServices;
+using SMSRateLimiter.Application.DTOs;
+using System.Collections.Concurrent;
+using Microsoft.Extensions.Options;
+using SMSRateLimiter.Domain.Models;
 
 namespace SMSRateLimiter.Startup
 {
@@ -39,6 +48,25 @@ namespace SMSRateLimiter.Startup
                 options.SuppressModelStateInvalidFilter = true;
             });
 
+            // Add CORS services
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowReactApp", policy =>
+                {
+                    policy.WithOrigins("http://localhost:3000")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
+
+            // Configure EF Core to use SQLite.
+            builder.Services.AddDbContext<MetricsDbContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            builder.Services.AddSingleton(new ConcurrentQueue<SmsLogDto>());
+            builder.Services.AddSingleton<ISmsLogBatchLogger, SmsLogBatchLogger>();
+            builder.Services.AddHostedService<SmsLogBatchWriter>();
+
             // Add services to the DI container
             builder.Services.AddControllers(options =>
             {
@@ -55,13 +83,19 @@ namespace SMSRateLimiter.Startup
 
             builder.Services.AddApiVersioning(options =>
             {
+                options.DefaultApiVersion = new ApiVersion(1, 0);
                 options.AssumeDefaultVersionWhenUnspecified = true;
-                options.DefaultApiVersion = new Microsoft.AspNetCore.Mvc.ApiVersion(1, 0);
+                options.ReportApiVersions = true;
             });
+
 
 
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+
+
+            builder.Services.AddScoped<ISmsLogRepository, SmsLogRepository>();
 
             builder.Services.AddSingleton<IClock, SystemClock>();
 
@@ -99,20 +133,22 @@ namespace SMSRateLimiter.Startup
                 // This health check uses the connection string directly. It will attempt to connect and perform a ping.
                 .AddRedis(redisConnection, name: "redis", failureStatus: HealthStatus.Unhealthy, tags: new[] { "db", "redis" });
 
+            builder.Services.Configure<RateLimitOptions>(builder.Configuration.GetSection("RateLimitOptions"));
+
 
             // Register the Domain rate limiter with desired limits (e.g., 5 per number, 100 globally)
             builder.Services.AddSingleton<ISmsRateLimiter>(sp =>
             {
                 var cache = sp.GetRequiredService<IRateLimitCache>();
-                var systemClock = sp.GetRequiredService<IClock>();
-                return new SmsRateLimiter(cache, systemClock, maxPerNumber: 5, maxGlobal: 100);
+                var options = sp.GetRequiredService<IOptions<RateLimitOptions>>();
+                return new SmsRateLimiter(cache, options);
             });
 
             // Register the Application service
             builder.Services.AddSingleton<ISmsRateLimiterAppService, SmsRateLimiterAppService>();
 
             var app = builder.Build();
-
+            app.UseCors("AllowReactApp");
             // Enable middleware for health checks
             app.UseHealthChecks("/health", new HealthCheckOptions
             {
@@ -142,8 +178,24 @@ namespace SMSRateLimiter.Startup
 
             app.UseSerilogRequestLogging();
             app.UseHttpsRedirection();
+
+
+
+            // Use routing and map controllers
+            app.UseRouting();
+
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
+
+            
+
             app.UseAuthorization();
+
+
             app.MapControllers();
+
             app.Run();
         }
     }

@@ -1,5 +1,7 @@
-﻿using SMSRateLimiter.Domain.Contracts.Caching;
+﻿using Microsoft.Extensions.Options;
+using SMSRateLimiter.Domain.Contracts.Caching;
 using SMSRateLimiter.Domain.Contracts.Services;
+using SMSRateLimiter.Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,43 +10,38 @@ using System.Threading.Tasks;
 
 namespace SMSRateLimiter.Domain.Implementations.Services
 {
-    public class SmsRateLimiter(IRateLimitCache cache, IClock clock, int maxPerNumber, int maxGlobal) : ISmsRateLimiter
+    public class SmsRateLimiter(IRateLimitCache cache, IOptions<RateLimitOptions> options) : ISmsRateLimiter
     {
         private readonly IRateLimitCache _cache = cache;
-        private readonly IClock _clock = clock;
-        private readonly int _maxPerNumber = maxPerNumber;
-        private readonly int _maxGlobal = maxGlobal;
-        private const string GlobalCounterKey = "GlobalCounter";
+       private const string GlobalCounterKey = "GlobalCounter";
+        private readonly RateLimitOptions _options = options.Value;
 
-        public async Task<bool> CanSendMessage(string phoneNumber)
+        public async Task<bool> CanSendMessageAsync(int accountId, string phoneNumber, DateTime timestamp)
         {
-            // Use current UTC second to scope counters for a 1-second window
-            var currentSecond = _clock.UtcNow.ToString("yyyyMMddHHmmss");
-            var numberKey = $"{phoneNumber}-{currentSecond}";
-            var globalKey = $"{GlobalCounterKey}-{currentSecond}";
+            var accountKey = $"account:{accountId}:{timestamp:yyyyMMddHHmmss}";
+            var numberKey = $"number:{accountId}:{phoneNumber}:{timestamp:yyyyMMddHHmmss}";
 
-            // Atomically increment the counters using the cache abstraction
-            int numberCount = await _cache.IncrementAsync(numberKey, TimeSpan.FromSeconds(1));
-            int globalCount = await _cache.IncrementAsync(globalKey, TimeSpan.FromSeconds(1));
+            var accountCount = await _cache.IncrementAsync(accountKey, TimeSpan.FromSeconds(1));
+            var numberCount = await _cache.IncrementAsync(numberKey, TimeSpan.FromSeconds(1));
 
-            // Return true only if both limits are not exceeded.
-            return numberCount <= _maxPerNumber && globalCount <= _maxGlobal;
+            if (accountCount >= _options.MaxPerAccountPerSecond || numberCount >= _options.MaxPerNumberPerSecond)
+                return false;
+
+            return true;
         }
 
-        public async Task<int> GetGlobalMessageCount()
+        public async Task<int> GetGlobalMessageCountAsync(int accountId, DateTime timestamp)
         {
-            var currentSecond = _clock.UtcNow.ToString("yyyyMMddHHmmss");
-            var globalKey = $"{GlobalCounterKey}-{currentSecond}";
-            var (Found, Value) = await _cache.TryGetValueAsync<int>(globalKey);
-            return Found ? Value : 0;
+            var accountKey = $"account:{accountId}:{timestamp:yyyyMMddHHmmss}";
+            var (found, value) = await _cache.TryGetValueAsync<int>(accountKey);
+            return found ? value : 0;
         }
 
-        public async Task<int> GetMessageCountForNumber(string phoneNumber)
+        public async Task<int> GetMessageCountForNumberAsync(int accountId, string phoneNumber, DateTime timestamp)
         {
-            var currentSecond = _clock.UtcNow.ToString("yyyyMMddHHmmss");
-            var numberKey = $"{phoneNumber}-{currentSecond}";
-            var (Found, Value) = await _cache.TryGetValueAsync<int>(numberKey);
-            return Found ? Value : 0;
+            var numberKey = $"number:{accountId}:{phoneNumber}:{timestamp:yyyyMMddHHmmss}";
+            var (found, value) = await _cache.TryGetValueAsync<int>(numberKey);
+            return found ? value : 0;
         }
     }
 }

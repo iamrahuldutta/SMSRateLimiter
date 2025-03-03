@@ -8,8 +8,8 @@ namespace SMSRateLimiter.Application.Contracts
 {
     public interface ISmsRateLimiterAppService
     {
-        Task<bool> CanSendMessage(string phoneNumber);
-        Task<int> GetGlobalMessageCount();
-        Task<int> GetMessageCountForNumber(string phoneNumber);
+        Task<bool> CanSendMessageAsync(int accountId, string phoneNumber, DateTime timestamp);
+        Task<int> GetGlobalMessageCountAsync(int accountId, DateTime timestamp);
+        Task<int> GetMessageCountForNumberAsync(int accountId, string phoneNumber, DateTime timestamp);
     }
 }

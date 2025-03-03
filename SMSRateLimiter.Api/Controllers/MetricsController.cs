@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SMSRateLimiter.Application.Contracts;
+using SMSRateLimiter.Domain.Contracts.Repositories;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,28 +13,28 @@ namespace SMSRateLimiter.Api.Controllers
     [ApiController]
     [Route("api/v{version:apiVersion}/[controller]")]
     [ApiVersion("1.0")]
-    public class MetricsController(ISmsRateLimiterAppService smsService) : ControllerBase
+    public class MetricsController : ControllerBase
     {
-        private readonly ISmsRateLimiterAppService _smsService = smsService;
+        private readonly ISmsLogRepository _smsLogRepository;
 
-        // GET: api/v1/metrics/global
-        [HttpGet("global")]
-        public async Task<IActionResult> GlobalMetrics()
+        public MetricsController(ISmsLogRepository smsLogRepository)
         {
-            int globalCount = await _smsService.GetGlobalMessageCount();
-            return Ok(new { timestamp = DateTime.UtcNow, messagesPerSecond = globalCount });
+            _smsLogRepository = smsLogRepository;
         }
 
-        // GET: api/v1/metrics/per-number?phoneNumber=...
-        [HttpGet("per-number")]
-        public async Task<IActionResult> PerNumberMetrics([FromQuery] string phoneNumber)
+        [HttpGet("get-logs")]
+        public async Task<IActionResult> GetLogs(
+           [Required][FromQuery] int accountId,
+           [FromQuery] string? phoneNumber,
+           [FromQuery] DateTime? from,
+           [FromQuery] DateTime? to)
         {
-            if (string.IsNullOrWhiteSpace(phoneNumber))
-            {
-                return BadRequest("Phone number is required.");
-            }
-            int count = await _smsService.GetMessageCountForNumber(phoneNumber);
-            return Ok(new { phoneNumber, timestamp = DateTime.UtcNow, messagesPerSecond = count });
+            if (accountId <= 0)
+                return BadRequest("AccountId is required.");
+
+            var logs = await _smsLogRepository.GetLogsAsync(accountId, phoneNumber, from, to);
+
+            return Ok(logs);
         }
     }
 }
