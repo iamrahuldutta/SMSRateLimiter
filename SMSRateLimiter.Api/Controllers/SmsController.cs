@@ -1,12 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SMSRateLimiter.Application.Contracts;
 using SMSRateLimiter.Application.DTOs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SMSRateLimiter.Api.Controllers
 {
@@ -16,7 +10,7 @@ namespace SMSRateLimiter.Api.Controllers
     public class SmsController(ISmsRateLimiterAppService smsService) : ControllerBase
     {
         private readonly ISmsRateLimiterAppService _smsService = smsService;
-
+        
         // POST: api/v1/sms/send
         [HttpPost("send")]
         public async Task<IActionResult> SendSms([FromBody] SmsRequestDto smsRequest)
