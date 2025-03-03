@@ -11,6 +11,7 @@ using SMSRateLimiter.Infrastructure.Implementations.Caching;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using SMSRateLimiter.Application.Validations;
+using StackExchange.Redis;
 
 namespace SMSRateLimiter.Startup
 {
@@ -64,9 +65,31 @@ namespace SMSRateLimiter.Startup
 
             // Caching Registration Options:
             // Option 1: In-Memory Caching (for development or single-instance scenarios)
-           
-            builder.Services.AddMemoryCache();
-            builder.Services.AddSingleton<IRateLimitCache, MemoryRateLimitCache>();
+
+            //builder.Services.AddMemoryCache();
+            //builder.Services.AddSingleton<IRateLimitCache, MemoryRateLimitCache>();
+
+
+            // Option 2: Redis Caching (for distributed scenarios)
+            // Uncomment the following lines and comment out the in-memory registration above
+            // Make sure you have a valid connection string in your configuration (e.g., appsettings.json)
+            // otherwise the fallback mechanism will use In-MemoryCache
+            
+            try
+            {
+                string redisConnection = builder.Configuration.GetConnectionString("Redis");
+                var multiplexer = ConnectionMultiplexer.Connect(redisConnection);
+                builder.Services.AddSingleton<IConnectionMultiplexer>(multiplexer);
+                builder.Services.AddSingleton<IRateLimitCache, RedisRateLimitCache>();
+            }
+            catch (Exception ex)
+            {
+                // Log the error and fallback to in-memory cache
+                Log.Error(ex, "Redis is not available. Falling back to in-memory caching.");
+                builder.Services.AddMemoryCache();
+                builder.Services.AddSingleton<IRateLimitCache, MemoryRateLimitCache>();
+            }
+
 
             // Register the Domain rate limiter with desired limits (e.g., 5 per number, 100 globally)
             builder.Services.AddSingleton<ISmsRateLimiter>(sp =>
