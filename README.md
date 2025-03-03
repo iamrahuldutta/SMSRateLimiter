@@ -12,30 +12,32 @@
 
 ---
 
-### 1️⃣ Start the API Project (`Startup` project)
+### Start the API Project (`Startup` project)
 
-#### 📂 Navigate to the API project folder:
-```bash
-cd SMSRateLimiter.API
+#### Navigate to the API project folder:
 
-dotnet restore
+- cd SMSRateLimiter.Startup
 
-cd..
+- dotnet restore
 
-cd SMSRateLimiter.Infrastructure
+- cd..
 
-dotnet ef database update
+- cd .\SMSRateLimiter.Infrastructure\
 
-dotnet run
+- update-database
+
+- dotnet run
+
+#### Start the React Monitoring Dashboard
+
+- cd sms-monitoring-dashboard
+
+- npm install
+
+- npm start
+
+Service	URL
+Swagger (API Docs)	http://localhost:5167/swagger
+React Dashboard	http://localhost:3000
 
 
-Start the React Monitoring Dashboard
-
-cd sms-monitoring-dashboard
-
-npm install
-
-npm start
-
-
-http://localhost:3000
