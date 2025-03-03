@@ -28,13 +28,13 @@ Both the configurations can be managed from appsettings.json:
 
 ### Start the API Project (`Startup` project)
 
-#### Navigate to the API project folder:
+#### Navigate to the Startup project folder:
 
 - cd SMSRateLimiter.Startup
 
 - dotnet restore
 
-- cd..
+#### Navigate to the Infrastructure project folder:
 
 - cd .\SMSRateLimiter.Infrastructure\
 
@@ -43,6 +43,8 @@ Both the configurations can be managed from appsettings.json:
 - dotnet run
 
 #### Start the React Monitoring Dashboard
+
+#### Navigate to the sms-monitoring-dashboard project folder:
 
 - cd sms-monitoring-dashboard
 
