@@ -1,6 +1,6 @@
 # SMSRateLimiter
 
-## ✅ Prerequisites
+## Prerequisites
 
 - [.NET SDK 7.0+](https://dotnet.microsoft.com/en-us/download)
 - [Node.js 18.x+](https://nodejs.org/)
@@ -8,7 +8,7 @@
 - [SQL Server](https://www.microsoft.com/en-us/sql-server/)
 - Visual Studio or VS Code (optional)
 
-## 🚀 How to Run the Project
+## How to Run the Project
 
 ---
 
