@@ -8,9 +8,10 @@ using System.Threading.Tasks;
 
 namespace SMSRateLimiter.Domain.Implementations.Services
 {
-    public class SmsRateLimiter(IRateLimitCache cache, int maxPerNumber, int maxGlobal) : ISmsRateLimiter
+    public class SmsRateLimiter(IRateLimitCache cache, IClock clock, int maxPerNumber, int maxGlobal) : ISmsRateLimiter
     {
         private readonly IRateLimitCache _cache = cache;
+        private readonly IClock _clock = clock;
         private readonly int _maxPerNumber = maxPerNumber;
         private readonly int _maxGlobal = maxGlobal;
         private const string GlobalCounterKey = "GlobalCounter";
@@ -18,7 +19,7 @@ namespace SMSRateLimiter.Domain.Implementations.Services
         public bool CanSendMessage(string phoneNumber)
         {
             // Use current UTC second to scope counters for a 1-second window
-            var currentSecond = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+            var currentSecond = _clock.UtcNow.ToString("yyyyMMddHHmmss");
             var numberKey = $"{phoneNumber}-{currentSecond}";
             var globalKey = $"{GlobalCounterKey}-{currentSecond}";
 
@@ -32,14 +33,14 @@ namespace SMSRateLimiter.Domain.Implementations.Services
 
         public int GetGlobalMessageCount()
         {
-            var currentSecond = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+            var currentSecond = _clock.UtcNow.ToString("yyyyMMddHHmmss");
             var globalKey = $"{GlobalCounterKey}-{currentSecond}";
             return _cache.TryGetValue<int>(globalKey, out var count) ? count : 0;
         }
 
         public int GetMessageCountForNumber(string phoneNumber)
         {
-            var currentSecond = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+            var currentSecond = _clock.UtcNow.ToString("yyyyMMddHHmmss");
             var numberKey = $"{phoneNumber}-{currentSecond}";
             return _cache.TryGetValue<int>(numberKey, out var count) ? count : 0;
         }

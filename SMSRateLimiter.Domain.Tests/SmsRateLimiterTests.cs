@@ -12,7 +12,7 @@ namespace SMSRateLimiter.Domain.Tests
             // Arrange
             var fakeCache = new MockRateLimitCache();
             // For this test, set a per-number limit of 5 and a global limit of 10.
-            var limiter = new SmsRateLimiter(fakeCache, maxPerNumber: 5, maxGlobal: 10);
+            var limiter = new SmsRateLimiter(fakeCache, new MockSystemClock(DateTime.UtcNow), maxPerNumber: 5, maxGlobal: 10);
             string phoneNumber = "+1234567890";
 
             // Act: first call should be under the limit.
@@ -28,7 +28,7 @@ namespace SMSRateLimiter.Domain.Tests
             // Arrange
             var fakeCache = new MockRateLimitCache();
             // Use a small per-number limit for testing.
-            var limiter = new SmsRateLimiter(fakeCache, maxPerNumber: 3, maxGlobal: 100);
+            var limiter = new SmsRateLimiter(fakeCache, new MockSystemClock(DateTime.UtcNow), maxPerNumber: 3, maxGlobal: 100);
             string phoneNumber = "+1234567890";
 
             // Act: Call the method 4 times within the same second.
@@ -53,7 +53,7 @@ namespace SMSRateLimiter.Domain.Tests
             // Arrange
             var fakeCache = new MockRateLimitCache();
             // Use a small global limit.
-            var limiter = new SmsRateLimiter(fakeCache, maxPerNumber: 100, maxGlobal: 3);
+            var limiter = new SmsRateLimiter(fakeCache, new MockSystemClock(DateTime.UtcNow), maxPerNumber: 100, maxGlobal: 3);
             string phoneNumber1 = "+1234567890";
             string phoneNumber2 = "+0987654321";
 
@@ -78,7 +78,7 @@ namespace SMSRateLimiter.Domain.Tests
         {
             // Arrange
             var fakeCache = new MockRateLimitCache();
-            var limiter = new SmsRateLimiter(fakeCache, maxPerNumber: 5, maxGlobal: 100);
+            var limiter = new SmsRateLimiter(fakeCache, new MockSystemClock(DateTime.UtcNow), maxPerNumber: 5, maxGlobal: 100);
             string phoneNumber = "+1234567890";
 
             // Act: Call CanSendMessage twice; global count should reflect 2 increments.
@@ -96,7 +96,7 @@ namespace SMSRateLimiter.Domain.Tests
         {
             // Arrange
             var fakeCache = new MockRateLimitCache();
-            var limiter = new SmsRateLimiter(fakeCache, maxPerNumber: 5, maxGlobal: 100);
+            var limiter = new SmsRateLimiter(fakeCache, new MockSystemClock(DateTime.UtcNow), maxPerNumber: 5, maxGlobal: 100);
             string phoneNumber = "+1234567890";
 
             // Act: Call CanSendMessage twice; per-number counter should reflect 2 increments.
@@ -107,6 +107,28 @@ namespace SMSRateLimiter.Domain.Tests
 
             // Assert
             Assert.That(numberCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void CanSendMessage_ResetsAfterExpiration()
+        {
+            var fakeClock = new MockSystemClock(DateTime.UtcNow);
+            var fakeCache = new MockRateLimitCache();
+            var limiter = new SmsRateLimiter(fakeCache, fakeClock, maxPerNumber: 5, maxGlobal: 100);
+            string phoneNumber = "+1234567890";
+
+            // Act: Send messages in the first second.
+            limiter.CanSendMessage(phoneNumber);  // counter becomes 1.
+            Assert.That(limiter.GetMessageCountForNumber(phoneNumber), Is.EqualTo(1));
+
+            // Simulate the passage of time beyond the 1-second expiration.
+            fakeClock.UtcNow = fakeClock.UtcNow.AddSeconds(2);
+
+            // Act: In the new time window, the counter should be reset.
+            int newCount = limiter.GetMessageCountForNumber(phoneNumber);
+
+            // Assert: newCount should be 0 because the previous counter expired.
+            Assert.That(newCount, Is.EqualTo(0));
         }
     }
 }
