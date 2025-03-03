@@ -8,17 +8,12 @@ using SMSRateLimiter.Domain.Contracts.Caching;
 
 namespace SMSRateLimiter.Infrastructure.Implementations.Caching
 {
-    public class MemoryRateLimitCache : IRateLimitCache
+    public class MemoryRateLimitCache(IMemoryCache memoryCache) : IRateLimitCache
     {
-        private readonly IMemoryCache _memoryCache;
-        private readonly object _lock = new object();
+        private readonly IMemoryCache _memoryCache = memoryCache;
+        private readonly object _lock = new();
 
-        public MemoryRateLimitCache(IMemoryCache memoryCache)
-        {
-            _memoryCache = memoryCache;
-        }
-
-        public int Increment(string key, TimeSpan expiration)
+        public Task<int> IncrementAsync(string key, TimeSpan expiration)
         {
             // Ensures that only one thread can perform these operations at a time, preventing race conditions.
             lock (_lock)
@@ -30,13 +25,20 @@ namespace SMSRateLimiter.Infrastructure.Implementations.Caching
                 }
                 current++;
                 _memoryCache.Set(key, current, expiration);
-                return current;
+                return Task.FromResult(current);
             }
         }
 
-        public bool TryGetValue<T>(string key, out T value)
+        public Task<(bool Found, T Value)> TryGetValueAsync<T>(string key)
         {
-            return _memoryCache.TryGetValue(key, out value);
+            if (_memoryCache.TryGetValue(key, out object? cachedValue) && cachedValue is T value)
+            {
+                return Task.FromResult((true, value));
+            }
+            else
+            {
+                return Task.FromResult<(bool, T)>((false, default(T)!));
+            }
         }
     }
 }

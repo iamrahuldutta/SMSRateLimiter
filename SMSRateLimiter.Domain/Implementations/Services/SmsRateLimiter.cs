@@ -16,7 +16,7 @@ namespace SMSRateLimiter.Domain.Implementations.Services
         private readonly int _maxGlobal = maxGlobal;
         private const string GlobalCounterKey = "GlobalCounter";
 
-        public bool CanSendMessage(string phoneNumber)
+        public async Task<bool> CanSendMessage(string phoneNumber)
         {
             // Use current UTC second to scope counters for a 1-second window
             var currentSecond = _clock.UtcNow.ToString("yyyyMMddHHmmss");
@@ -24,25 +24,27 @@ namespace SMSRateLimiter.Domain.Implementations.Services
             var globalKey = $"{GlobalCounterKey}-{currentSecond}";
 
             // Atomically increment the counters using the cache abstraction
-            int numberCount = _cache.Increment(numberKey, TimeSpan.FromSeconds(1));
-            int globalCount = _cache.Increment(globalKey, TimeSpan.FromSeconds(1));
+            int numberCount = await _cache.IncrementAsync(numberKey, TimeSpan.FromSeconds(1));
+            int globalCount = await _cache.IncrementAsync(globalKey, TimeSpan.FromSeconds(1));
 
             // Return true only if both limits are not exceeded.
             return numberCount <= _maxPerNumber && globalCount <= _maxGlobal;
         }
 
-        public int GetGlobalMessageCount()
+        public async Task<int> GetGlobalMessageCount()
         {
             var currentSecond = _clock.UtcNow.ToString("yyyyMMddHHmmss");
             var globalKey = $"{GlobalCounterKey}-{currentSecond}";
-            return _cache.TryGetValue<int>(globalKey, out var count) ? count : 0;
+            var (Found, Value) = await _cache.TryGetValueAsync<int>(globalKey);
+            return Found ? Value : 0;
         }
 
-        public int GetMessageCountForNumber(string phoneNumber)
+        public async Task<int> GetMessageCountForNumber(string phoneNumber)
         {
             var currentSecond = _clock.UtcNow.ToString("yyyyMMddHHmmss");
             var numberKey = $"{phoneNumber}-{currentSecond}";
-            return _cache.TryGetValue<int>(numberKey, out var count) ? count : 0;
+            var (Found, Value) = await _cache.TryGetValueAsync<int>(numberKey);
+            return Found ? Value : 0;
         }
     }
 }

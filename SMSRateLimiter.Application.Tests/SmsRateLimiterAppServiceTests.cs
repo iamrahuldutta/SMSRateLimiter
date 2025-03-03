@@ -9,16 +9,16 @@ namespace SMSRateLimiter.Application.Tests
     public class SmsRateLimiterAppServiceTests
     {
         [Test]
-        public void CanSendMessage_DelegatesToDomainService()
+        public async Task CanSendMessage_DelegatesToDomainService()
         {
             // Arrange
             var phoneNumber = "+1234567890";
             var mockDomainService = new Mock<ISmsRateLimiter>();
-            mockDomainService.Setup(x => x.CanSendMessage(phoneNumber)).Returns(true);
+            mockDomainService.Setup(x => x.CanSendMessage(phoneNumber)).ReturnsAsync(true);
             ISmsRateLimiterAppService appService = new SmsRateLimiterAppService(mockDomainService.Object);
 
             // Act
-            var result = appService.CanSendMessage(phoneNumber);
+            var result = await appService.CanSendMessage(phoneNumber);
 
             // Assert
             Assert.True(result);
@@ -26,16 +26,16 @@ namespace SMSRateLimiter.Application.Tests
         }
 
         [Test]
-        public void GetGlobalMessageCount_DelegatesToDomainService()
+        public async Task GetGlobalMessageCount_DelegatesToDomainService()
         {
             // Arrange
             var expectedCount = 5;
             var mockDomainService = new Mock<ISmsRateLimiter>();
-            mockDomainService.Setup(x => x.GetGlobalMessageCount()).Returns(expectedCount);
+            mockDomainService.Setup(x => x.GetGlobalMessageCount()).ReturnsAsync(expectedCount);
             ISmsRateLimiterAppService appService = new SmsRateLimiterAppService(mockDomainService.Object);
 
             // Act
-            var result = appService.GetGlobalMessageCount();
+            var result = await appService.GetGlobalMessageCount();
 
             // Assert
             Assert.That(result, Is.EqualTo(expectedCount));
@@ -43,17 +43,17 @@ namespace SMSRateLimiter.Application.Tests
         }
 
         [Test]
-        public void GetMessageCountForNumber_DelegatesToDomainService()
+        public async Task GetMessageCountForNumber_DelegatesToDomainService()
         {
             // Arrange
             var phoneNumber = "+1234567890";
             var expectedCount = 3;
             var mockDomainService = new Mock<ISmsRateLimiter>();
-            mockDomainService.Setup(x => x.GetMessageCountForNumber(phoneNumber)).Returns(expectedCount);
+            mockDomainService.Setup(x => x.GetMessageCountForNumber(phoneNumber)).ReturnsAsync(expectedCount);
             ISmsRateLimiterAppService appService = new SmsRateLimiterAppService(mockDomainService.Object);
 
             // Act
-            var result = appService.GetMessageCountForNumber(phoneNumber);
+            var result = await appService.GetMessageCountForNumber(phoneNumber);
 
             // Assert
             Assert.That(result, Is.EqualTo(expectedCount));

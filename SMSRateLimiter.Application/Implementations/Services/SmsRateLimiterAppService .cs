@@ -8,28 +8,23 @@ using System.Threading.Tasks;
 
 namespace SMSRateLimiter.Application.Implementations.Services
 {
-    public class SmsRateLimiterAppService : ISmsRateLimiterAppService
+    public class SmsRateLimiterAppService(ISmsRateLimiter smsRateLimiter) : ISmsRateLimiterAppService
     {
-        private readonly ISmsRateLimiter _smsRateLimiter;
+        private readonly ISmsRateLimiter _smsRateLimiter = smsRateLimiter;
 
-        public SmsRateLimiterAppService(ISmsRateLimiter smsRateLimiter)
+        public async Task<bool> CanSendMessage(string phoneNumber)
         {
-            _smsRateLimiter = smsRateLimiter;
+            return await _smsRateLimiter.CanSendMessage(phoneNumber);
         }
 
-        public bool CanSendMessage(string phoneNumber)
+        public async Task<int> GetGlobalMessageCount()
         {
-            return _smsRateLimiter.CanSendMessage(phoneNumber);
+            return await _smsRateLimiter.GetGlobalMessageCount();
         }
 
-        public int GetGlobalMessageCount()
+        public async Task<int> GetMessageCountForNumber(string phoneNumber)
         {
-            return _smsRateLimiter.GetGlobalMessageCount();
-        }
-
-        public int GetMessageCountForNumber(string phoneNumber)
-        {
-            return _smsRateLimiter.GetMessageCountForNumber(phoneNumber);
+            return await _smsRateLimiter.GetMessageCountForNumber(phoneNumber);
         }
     }
 }

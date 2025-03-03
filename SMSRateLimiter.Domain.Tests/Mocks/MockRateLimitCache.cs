@@ -1,31 +1,30 @@
 ﻿using SMSRateLimiter.Domain.Contracts.Caching;
+using System.Collections.Concurrent;
 
 namespace SMSRateLimiter.Domain.Tests.Mocks
 {
     public class MockRateLimitCache : IRateLimitCache
     {
-        private readonly Dictionary<string, int> _store = [];
+        // Using a thread-safe dictionary to simulate cache storage.
+        private readonly ConcurrentDictionary<string, int> _store = new ConcurrentDictionary<string, int>();
 
-        public int Increment(string key, TimeSpan expiration)
+        public Task<int> IncrementAsync(string key, TimeSpan expiration)
         {
-            if (!_store.ContainsKey(key))
-                _store[key] = 0;
-            _store[key]++;
-            return _store[key];
+            // Atomically increment the value associated with the key.
+            int newValue = _store.AddOrUpdate(key, 1, (k, current) => current + 1);
+            return Task.FromResult(newValue);
         }
 
-        public bool TryGetValue<T>(string key, out T value)
+        public Task<(bool Found, T Value)> TryGetValueAsync<T>(string key)
         {
             if (_store.TryGetValue(key, out int intValue))
             {
                 if (typeof(T) == typeof(int))
                 {
-                    value = (T)(object)intValue;
-                    return true;
+                    return Task.FromResult<(bool, T)>((true, (T)(object)intValue));
                 }
             }
-            value = default;
-            return false;
+            return Task.FromResult<(bool, T)>((false, default(T)!));
         }
     }
 }

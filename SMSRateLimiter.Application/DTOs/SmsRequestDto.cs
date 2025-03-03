@@ -8,6 +8,6 @@ namespace SMSRateLimiter.Application.DTOs
 {
     public class SmsRequestDto
     {
-        public string PhoneNumber { get; set; }
+        public required string PhoneNumber { get; set; }
     }
 }

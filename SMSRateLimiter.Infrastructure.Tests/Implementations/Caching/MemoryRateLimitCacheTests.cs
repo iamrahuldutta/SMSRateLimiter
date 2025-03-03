@@ -3,7 +3,7 @@ using Newtonsoft.Json.Linq;
 using SMSRateLimiter.Domain.Contracts.Caching;
 using SMSRateLimiter.Infrastructure.Implementations.Caching;
 
-namespace SMSRateLimiter.Infrastructure.Tests
+namespace SMSRateLimiter.Infrastructure.Tests.Implementations.Caching
 {
     [TestFixture]
     public class MemoryRateLimitCacheTests
@@ -16,7 +16,7 @@ namespace SMSRateLimiter.Infrastructure.Tests
         }
 
         [Test]
-        public void Increment_ShouldReturn_IncrementedValue()
+        public async Task Increment_ShouldReturn_IncrementedValue()
         {
             // Arrange
             var cache = CreateCache();
@@ -24,8 +24,8 @@ namespace SMSRateLimiter.Infrastructure.Tests
             TimeSpan expiration = TimeSpan.FromSeconds(10);
 
             // Act
-            int value1 = cache.Increment(key, expiration);
-            int value2 = cache.Increment(key, expiration);
+            int value1 = await cache.IncrementAsync(key, expiration);
+            int value2 = await cache.IncrementAsync(key, expiration);
 
             Assert.Multiple(() =>
             {
@@ -36,7 +36,7 @@ namespace SMSRateLimiter.Infrastructure.Tests
         }
 
         [Test]
-        public void TryGetValue_ShouldReturn_CorrectValue()
+        public async Task TryGetValue_ShouldReturn_CorrectValue()
         {
             // Arrange
             var cache = CreateCache();
@@ -44,32 +44,32 @@ namespace SMSRateLimiter.Infrastructure.Tests
             TimeSpan expiration = TimeSpan.FromSeconds(10);
 
             // Act
-            cache.Increment(key, expiration);
-            bool found = cache.TryGetValue<int>(key, out int value);
+            await cache.IncrementAsync(key, expiration);
+            var result = await cache.TryGetValueAsync<int>(key);
 
             Assert.Multiple(() =>
-            {
-                // Assert
-                Assert.That(found, Is.True);
-                Assert.That(value, Is.EqualTo(1));
-            });
+             {
+                 // Assert
+                 Assert.That(result.Found, Is.True);
+                 Assert.That(result.Value, Is.EqualTo(1));
+             });
         }
 
         [Test]
-        public void TryGetValue_ShouldReturnFalse_ForNonExistentKey()
+        public async Task TryGetValue_ShouldReturnFalse_ForNonExistentKey()
         {
             // Arrange
             var cache = CreateCache();
             string key = "nonExistentKey";
 
             // Act
-            bool found = cache.TryGetValue<int>(key, out int value);
+            var result = await cache.TryGetValueAsync<int>(key);
 
             Assert.Multiple(() =>
             {
                 // Assert
-                Assert.That(found, Is.False);
-                Assert.That(value, Is.EqualTo(0)); // default(int) is 0
+                Assert.That(result.Found, Is.False);
+                Assert.That(result.Value, Is.EqualTo(0)); // default(int) is 0
             });
         }
 
@@ -82,21 +82,21 @@ namespace SMSRateLimiter.Infrastructure.Tests
             TimeSpan expiration = TimeSpan.FromMilliseconds(500);
 
             // Act
-            cache.Increment(key, expiration);
-            bool foundBeforeDelay = cache.TryGetValue<int>(key, out int valueBefore);
+            await cache.IncrementAsync(key, expiration);
+            var foundBeforeDelay = await cache.TryGetValueAsync<int>(key);
             await Task.Delay(600); // Wait longer than expiration time
-            bool foundAfterDelay = cache.TryGetValue<int>(key, out int valueAfter);
+            var foundAfterDelay = await cache.TryGetValueAsync<int>(key);
 
             Assert.Multiple(() =>
             {
                 // Assert
-                Assert.That(foundBeforeDelay, Is.True);
-                Assert.That(foundAfterDelay, Is.False);
+                Assert.That(foundBeforeDelay.Found, Is.True);
+                Assert.That(foundAfterDelay.Found, Is.False);
             });
         }
 
         [Test]
-        public void Increment_MultipleKeys_ShouldMaintainIsolation()
+        public async Task Increment_MultipleKeys_ShouldMaintainIsolation()
         {
             // Arrange
             var cache = CreateCache();
@@ -105,9 +105,9 @@ namespace SMSRateLimiter.Infrastructure.Tests
             TimeSpan expiration = TimeSpan.FromSeconds(10);
 
             // Act
-            int value1 = cache.Increment(key1, expiration);
-            int value2 = cache.Increment(key2, expiration);
-            int value1Again = cache.Increment(key1, expiration);
+            int value1 = await cache.IncrementAsync(key1, expiration);
+            int value2 = await cache.IncrementAsync(key2, expiration);
+            int value1Again = await cache.IncrementAsync(key1, expiration);
 
             Assert.Multiple(() =>
             {
@@ -119,7 +119,7 @@ namespace SMSRateLimiter.Infrastructure.Tests
         }
 
         [Test]
-        public void Increment_ShouldBeThreadSafe_UnderConcurrentAccess()
+        public async Task Increment_ShouldBeThreadSafe_UnderConcurrentAccess()
         {
             // Arrange
             var cache = CreateCache();
@@ -132,22 +132,22 @@ namespace SMSRateLimiter.Infrastructure.Tests
             // Act
             for (int i = 0; i < numTasks; i++)
             {
-                tasks[i] = Task.Run(() =>
+                tasks[i] = Task.Run(async () =>
                 {
                     for (int j = 0; j < incrementsPerTask; j++)
                     {
-                        cache.Increment(key, expiration);
+                        await cache.IncrementAsync(key, expiration);
                     }
                 });
             }
             Task.WaitAll(tasks);
-            bool found = cache.TryGetValue<int>(key, out int finalValue);
+            var result = await cache.TryGetValueAsync<int>(key);
 
             Assert.Multiple(() =>
             {
                 // Assert
-                Assert.That(found, Is.True);
-                Assert.That(finalValue, Is.EqualTo(numTasks * incrementsPerTask));
+                Assert.That(result.Found, Is.True);
+                Assert.That(result.Value, Is.EqualTo(numTasks * incrementsPerTask));
             });
         }
     }

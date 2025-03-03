@@ -15,8 +15,8 @@ namespace SMSRateLimiter.Domain.Contracts.Caching
         /// <param name="key">Cache key</param>
         /// <param name="expiration">Expiration timespan</param>
         /// <returns>The updated counter value.</returns>
-        int Increment(string key, TimeSpan expiration);
+        Task<int> IncrementAsync(string key, TimeSpan expiration);
 
-        bool TryGetValue<T>(string key, out T value);
+        Task<(bool Found, T Value)> TryGetValueAsync<T>(string key);
     }
 }
