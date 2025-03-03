@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMSRateLimiter.Domain.Tests
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMSRateLimiter.Application.Tests", "SMSRateLimiter.Application.Tests\SMSRateLimiter.Application.Tests.csproj", "{0FA9B967-6120-4F49-A86C-1C93DB31198F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMSRateLimiter.Infrastructure.Tests", "SMSRateLimiter.Infrastructure.Tests\SMSRateLimiter.Infrastructure.Tests.csproj", "{680C2753-5F17-4F98-9AEB-2FED8777DA0C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -53,6 +55,10 @@ Global
 		{0FA9B967-6120-4F49-A86C-1C93DB31198F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0FA9B967-6120-4F49-A86C-1C93DB31198F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0FA9B967-6120-4F49-A86C-1C93DB31198F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{680C2753-5F17-4F98-9AEB-2FED8777DA0C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{680C2753-5F17-4F98-9AEB-2FED8777DA0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{680C2753-5F17-4F98-9AEB-2FED8777DA0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{680C2753-5F17-4F98-9AEB-2FED8777DA0C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -60,6 +66,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{37949460-4605-453C-976E-D5953879651B} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{0FA9B967-6120-4F49-A86C-1C93DB31198F} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{680C2753-5F17-4F98-9AEB-2FED8777DA0C} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B70046E1-AA5C-4A05-A072-947D62A704A1}
