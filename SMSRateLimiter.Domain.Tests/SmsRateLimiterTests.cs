@@ -3,6 +3,7 @@ using SMSRateLimiter.Domain.Tests.Mocks;
 
 namespace SMSRateLimiter.Domain.Tests
 {
+    [TestFixture]
     public class SmsRateLimiterTests
     {
 
