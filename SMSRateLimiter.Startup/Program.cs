@@ -12,6 +12,8 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using SMSRateLimiter.Application.Validations;
 using StackExchange.Redis;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 namespace SMSRateLimiter.Startup
 {
@@ -74,21 +76,28 @@ namespace SMSRateLimiter.Startup
             // Uncomment the following lines and comment out the in-memory registration above
             // Make sure you have a valid connection string in your configuration (e.g., appsettings.json)
             // otherwise the fallback mechanism will use In-MemoryCache
-            
+
+            string redisConnection = builder.Configuration.GetConnectionString("Redis");
+
             try
             {
-                string redisConnection = builder.Configuration.GetConnectionString("Redis");
-                var multiplexer = ConnectionMultiplexer.Connect(redisConnection);
-                builder.Services.AddSingleton<IConnectionMultiplexer>(multiplexer);
+                // Attempt to connect to Redis
+                var redisMultiplexer = ConnectionMultiplexer.Connect(redisConnection);
+                builder.Services.AddSingleton<IConnectionMultiplexer>(redisMultiplexer);
                 builder.Services.AddSingleton<IRateLimitCache, RedisRateLimitCache>();
             }
             catch (Exception ex)
             {
-                // Log the error and fallback to in-memory cache
-                Log.Error(ex, "Redis is not available. Falling back to in-memory caching.");
+                // Log the error and fallback to in-memory caching
+                Log.Error(ex, "Redis connection failed. Falling back to in-memory caching.");
                 builder.Services.AddMemoryCache();
                 builder.Services.AddSingleton<IRateLimitCache, MemoryRateLimitCache>();
             }
+
+            // Register health checks
+            builder.Services.AddHealthChecks()
+                // This health check uses the connection string directly. It will attempt to connect and perform a ping.
+                .AddRedis(redisConnection, name: "redis", failureStatus: HealthStatus.Unhealthy, tags: new[] { "db", "redis" });
 
 
             // Register the Domain rate limiter with desired limits (e.g., 5 per number, 100 globally)
@@ -103,6 +112,26 @@ namespace SMSRateLimiter.Startup
             builder.Services.AddSingleton<ISmsRateLimiterAppService, SmsRateLimiterAppService>();
 
             var app = builder.Build();
+
+            // Enable middleware for health checks
+            app.UseHealthChecks("/health", new HealthCheckOptions
+            {
+                ResponseWriter = async (context, report) =>
+                {
+                    // Customize the health check response (e.g., JSON response)
+                    context.Response.ContentType = "application/json";
+                    var result = System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        status = report.Status.ToString(),
+                        checks = report.Entries.Select(e => new {
+                            key = e.Key,
+                            status = e.Value.Status.ToString(),
+                            description = e.Value.Description
+                        })
+                    });
+                    await context.Response.WriteAsync(result);
+                }
+            });
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
